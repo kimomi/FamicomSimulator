@@ -28,7 +28,7 @@ namespace FamicomSimulator
                     throw new InvalidDataException("Invalid NES Data Format! Read trainer aread failed!");
                 }
                 TrainerArea = new byte[512];
-                Array.Copy(data, 16, TrainerArea, 0, 512);
+                Array.Copy(data, currentByteCount, TrainerArea, 0, 512);
                 currentByteCount += 512;
             }
 
@@ -37,6 +37,7 @@ namespace FamicomSimulator
                 throw new InvalidDataException("Invalid NES Data Format! Read PRG-ROM failed!");
             }
             DataPrgRom = new byte[Header.PrgRomSize];
+            Array.Copy(data, currentByteCount, DataPrgRom, 0, Header.PrgRomSize);
             currentByteCount += (int)Header.PrgRomSize;
 
             if (data.Length < currentByteCount + Header.ChrRomSize)
@@ -44,6 +45,7 @@ namespace FamicomSimulator
                 throw new InvalidDataException("Invalid NES Data Format! Read CHR-ROM failed!");
             }
             DataChrRom = new byte[Header.ChrRomSize];
+            Array.Copy(data, currentByteCount, DataChrRom, 0, Header.ChrRomSize);
             currentByteCount += (int)Header.ChrRomSize;
 
             if (currentByteCount < data.Length) // 不一定有这部分区域
