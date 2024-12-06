@@ -12,6 +12,5 @@ namespace FamicomSimulator.Config
 
         FILE_NOT_FOUND = 100,
         FILE_ILLEGAL,
-        FILE_ILLEGAL_HEADER,
     }
 }
