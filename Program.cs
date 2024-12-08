@@ -23,20 +23,27 @@ namespace FamicomSimulator
             fc.LoadROM(romInfo);
             fc.Cpu.register.PC = 0xC000;
             var testFileLines = File.ReadAllLines("../../../Others/nestest.log");
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < testFileLines.Length; i++)
             {
                 var cpuState = fc.Cpu.ToString();
-                LogUtil.Log($"         {cpuState}");
-                LogUtil.Log(testFileLines[i]);
+                LogUtil.Log(cpuState);
                 var myAsm = cpuState.Substring(7, 19).Trim();
-                var refAsm = testFileLines[i].Substring(16, 19).Trim();
-                if (myAsm != refAsm && 
-                    !(refAsm.Contains('=') && refAsm.Split('=')[0].Trim() == myAsm))
+                var refAsm = testFileLines[i].Substring(16, 19).Split('@')[0].Trim();
+
+                var myRState = cpuState.Substring(30).Trim();
+                var refRState = testFileLines[i].Substring(testFileLines[i].IndexOf("A:"), 25).Trim();
+                if ((myAsm != refAsm &&
+                    !(refAsm.Contains('=') && refAsm.Split('=')[0].Trim() == myAsm) && 
+                    !(myAsm.Contains("ISC") && refAsm.Contains("ISB")))
+                    || (myRState != refRState))
                 {
-                    LogUtil.Error($"myAsm:{myAsm}, refAsm:{refAsm}");
+                    LogUtil.Error($"line:{i} myAsm:={myAsm}=, refAsm:={refAsm}=, myR:={myRState}=, refR:={refRState}=");
+                    LogUtil.Error("Test Failed!");
+                    break;
                 }
                 fc.Tick();
             }
+            LogUtil.Log("Finish Test!");
 
             Console.ReadKey();
         }

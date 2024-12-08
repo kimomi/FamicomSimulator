@@ -497,7 +497,7 @@ namespace FamicomSimulator.Core
 
         private void RLA(ushort address)
         {
-            var src = ReadByte(address);
+            ushort src = ReadByte(address);
             src <<= 1;
             if (register.C != 0)
             {

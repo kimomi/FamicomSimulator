@@ -395,7 +395,7 @@ namespace FamicomSimulator.Core
             switch ((address & 0xC000) >> 13)
             {
                 case 0: // [$0000, $2000) 系统主内存，2K内存四次镜像成8K
-                    return Memory[address & (1 << 11)];
+                    return Memory[address % (1 << 11)];
                 case 1: // [$2000, $4000) PPU 寄存器
                     return Memory[address];
                     //throw new NotImplementedException();
@@ -419,7 +419,7 @@ namespace FamicomSimulator.Core
             switch ((address & 0xC0) >> 13)
             {
                 case 0: // [$0000, $2000) 系统主内存，2K内存四次镜像成8K
-                    Memory[address & (1 << 11)] = value;
+                    Memory[address % (1 << 11)] = value;
                     break;
                 case 1: // [$2000, $4000) PPU 寄存器
                     throw new NotImplementedException();
@@ -454,9 +454,8 @@ namespace FamicomSimulator.Core
 
         internal byte Pull()
         {
-            var result = Memory[0x100 + register.SP];
             register.SP++;
-            return result;
+            return Memory[0x100 + register.SP];
         }
 
         internal enum InterruptVector : ushort
@@ -550,7 +549,7 @@ namespace FamicomSimulator.Core
         public override string ToString()
         {
             var assemblyCode = GetCurrentAssembleString();
-            return $"${register.PC:X4}  {assemblyCode, -20};    A:0X{register.A:X2}, X:0X{register.X:X2}, Y:0X{register.Y:X2}, P:0X{(byte)register.P:X2}, SP:${register.SP:X2}";
+            return $"${register.PC:X4}  {assemblyCode, -20};    A:{register.A:X2} X:{register.X:X2} Y:{register.Y:X2} P:{(byte)register.P:X2} SP:{register.SP:X2}";
         }
     }
 }
