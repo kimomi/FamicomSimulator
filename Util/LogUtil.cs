@@ -21,5 +21,20 @@ namespace FamicomSimulator.Util
                 Console.WriteLine(message);
             }
         }
+
+        public static void Error(string message)
+        {
+            var oldColor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Red;
+            if (ShowTime)
+            {
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] [ERROR] {message}");
+            }
+            else
+            {
+                Console.WriteLine($"[ERROR] {message}");
+            }
+            Console.ForegroundColor = oldColor;
+        }
     }
 }

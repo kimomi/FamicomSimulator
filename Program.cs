@@ -21,12 +21,23 @@ namespace FamicomSimulator
             // load rom to cpu
             Famicom fc = new Famicom();
             fc.LoadROM(romInfo);
-            var nmiAddress = fc.Cpu.GetInterruptAddress(Cpu.InterruptVector.NMI);
-            var resetAddress = fc.Cpu.GetInterruptAddress(Cpu.InterruptVector.RESET);
-            var irqbrkAddress = fc.Cpu.GetInterruptAddress(Cpu.InterruptVector.IRQ_BRK);
-            LogUtil.Log($"NMI:${nmiAddress:X}, RESET:${resetAddress:X}, IRQ/BRK:${irqbrkAddress:X}");
-            LogUtil.Log($"RESET OP Code:0x{fc.Cpu.ReadByte(resetAddress):X}");
-            
+            fc.Cpu.register.PC = 0xC000;
+            var testFileLines = File.ReadAllLines("../../../Others/nestest.log");
+            for (int i = 0; i < 1000; i++)
+            {
+                var cpuState = fc.Cpu.ToString();
+                LogUtil.Log($"         {cpuState}");
+                LogUtil.Log(testFileLines[i]);
+                var myAsm = cpuState.Substring(7, 19).Trim();
+                var refAsm = testFileLines[i].Substring(16, 19).Trim();
+                if (myAsm != refAsm && 
+                    !(refAsm.Contains('=') && refAsm.Split('=')[0].Trim() == myAsm))
+                {
+                    LogUtil.Error($"myAsm:{myAsm}, refAsm:{refAsm}");
+                }
+                fc.Tick();
+            }
+
             Console.ReadKey();
         }
     }

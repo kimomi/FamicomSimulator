@@ -1,6 +1,4 @@
-﻿using FamicomSimulator.Config;
-using System.Runtime.Intrinsics.Arm;
-
+﻿
 namespace FamicomSimulator
 {
     public class RomInfo

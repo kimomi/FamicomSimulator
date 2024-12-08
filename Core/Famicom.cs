@@ -8,13 +8,18 @@ namespace FamicomSimulator.Core
 {
     public class Famicom
     {
-        public Cpu Cpu = new Cpu();
+        internal Cpu Cpu = new Cpu();
         public RomInfo? RomInfo;
 
         public void LoadROM(RomInfo romInfo)
         {
             RomInfo = romInfo;
             Cpu.LoadROM(romInfo);
+        }
+
+        public void Tick()
+        {
+            Cpu.Tick();
         }
     }
 }
