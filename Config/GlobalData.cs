@@ -19,7 +19,7 @@
 
             public uint ToUint()
             {
-                return ((uint)(R << 24)) | ((uint)(G << 16)) | ((uint)(B << 8)) | (uint)A;
+                return ((uint)A << 24) | ((uint)(R << 16)) | ((uint)(G << 8)) | ((uint)B);
             }
         }
 

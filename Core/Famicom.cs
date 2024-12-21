@@ -11,6 +11,8 @@ namespace FamicomSimulator.Core
         internal Cpu Cpu;
         internal Ppu Ppu;
         public RomInfo? RomInfo;
+        public byte[][] VideoMemory = new byte[2][];
+        public byte[][] VideoMemoryEx = new byte[2][];
 
         public Famicom()
         {
@@ -22,46 +24,39 @@ namespace FamicomSimulator.Core
             {
                 Famicom = this
             };
+            for (int i = 0; i < VideoMemory.Length; i++)
+            {
+                VideoMemory[i] = new byte[1024];
+                VideoMemoryEx[i] = new byte[1024];
+            }
         }
 
         public void LoadROM(RomInfo romInfo)
         {
             RomInfo = romInfo;
-            LoadMapper(romInfo);
+            LoadMapper();
+            Reset();
         }
 
-        private void LoadMapper(RomInfo romInfo)
+        private void LoadMapper()
         {
-            var mapperNum = romInfo.Header.MapperNumber;
-            var sumMapperNum = romInfo.Header.SubmapperNumber;
+            if (RomInfo == null) return;
+
+            var mapperNum = RomInfo.Header.MapperNumber;
+            var sumMapperNum = RomInfo.Header.SubmapperNumber;
+        }
+
+        private void Reset()
+        {
+            if (RomInfo == null) return;
+
             // todo mapper
-
-            Cpu.LoadROM(romInfo);
-            // CHR-ROM
-            for (int i = 0; i < 8; i++)
-            {
-                Array.Copy(romInfo.DataChrRom, i * 1024, Ppu.Banks[i], 0, 1024);
-            }
-        }
-
-        private void Render()
-        {
-            using Bitmap a = new Bitmap(256, 240);
-            {
-                for (int i = 0; i < 256; i++)
-                {
-                    for (int j = 0; j < 240; j++)
-                    {
-                        var c = data[i * 240 + j];
-                        a.SetPixel(i, j, Color.FromArgb(c.A, c.R, c.G, c.B));
-                    }
-                }
-                a.Save("result.png");
-            }
+            Cpu.LoadROM(RomInfo);
+            Ppu.LoadROM(RomInfo);
         }
 
         private PaletteData[] PaletteData = new PaletteData[16];
-        private PaletteData[] data = new PaletteData[256 * 240];
+        internal uint[] GraphicData = new uint[256 * 240];
 
         public void Tick()
         {
@@ -69,7 +64,7 @@ namespace FamicomSimulator.Core
             {
                 Cpu.Tick();
             }
-            LogUtil.Log("Render");
+
             Cpu.DoVblank();
 
             // 生成调色板颜色
@@ -88,10 +83,8 @@ namespace FamicomSimulator.Core
             {
                 var x = i % 256;
                 var y = i / 256;
-                data[i] = GetPixel(x, y, now, bpg);
+                GraphicData[i] = GetPixel(x, y, now, bpg).ToUint();
             }
-
-            Render();
         }
 
         private PaletteData GetPixel(int x, int y, byte[] nt, byte[] bg)

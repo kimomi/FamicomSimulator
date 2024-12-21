@@ -49,6 +49,54 @@ namespace FamicomSimulator.Core
         public byte PpuDataRgister;
         public byte OamDmaRgister;
 
+        internal void LoadROM(RomInfo romInfo)
+        {
+            foreach (var bank in Banks)
+            {
+                Array.Clear(bank);
+            }
+            Array.Clear(Spindexes);
+            Array.Clear(Sprites);
+            Array.Clear(Scroll);
+
+            // CHR-ROM
+            for (int i = 0; i < 8; i++)
+            {
+                Array.Copy(romInfo.DataChrRom, i * 1024, Banks[i], 0, 1024);
+            }
+
+            // 4屏
+            if (romInfo.Header.FourScreen)
+            {
+                Banks[0x8] = Famicom.VideoMemory[0];
+                Banks[0x9] = Famicom.VideoMemory[1];
+                Banks[0xa] = Famicom.VideoMemoryEx[0];
+                Banks[0xb] = Famicom.VideoMemoryEx[1];
+            }
+            // 横版
+            else if (romInfo.Header.HardwiredNametaleLayoot)
+            {
+                Banks[0x8] = Famicom.VideoMemory[0];
+                Banks[0x9] = Famicom.VideoMemory[1];
+                Banks[0xa] = Famicom.VideoMemory[0];
+                Banks[0xb] = Famicom.VideoMemory[1];
+            }
+            // 纵版
+            else
+            {
+                Banks[0x8] = Famicom.VideoMemory[0];
+                Banks[0x9] = Famicom.VideoMemory[0];
+                Banks[0xa] = Famicom.VideoMemory[1];
+                Banks[0xb] = Famicom.VideoMemory[1];
+            }
+
+            // 镜像
+            Banks[0xc] = Banks[0x8];
+            Banks[0xd] = Banks[0x9];
+            Banks[0xe] = Banks[0xa];
+            Banks[0xf] = Banks[0xb];
+        }
+
         [Flags]
         internal enum PpuCtrlRegisterFlag : byte
         {

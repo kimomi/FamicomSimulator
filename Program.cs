@@ -6,7 +6,7 @@ namespace FamicomSimulator
 {
     internal class Program
     {
-        private static bool _exit = false;
+        private static Famicom _fc = new Famicom();
 
         public static void Main()
         {
@@ -21,20 +21,16 @@ namespace FamicomSimulator
             LogUtil.Log($"ROM PRG-ROM:{romInfo.DataPrgRom.Length / 1024 / 16} * 16 KB, CHR-ROM:{romInfo.DataChrRom.Length / 1024 / 8} * 8 KB, Mapper:{romInfo.Header.MapperNumber}");
             
             // load rom to cpu
-            Famicom fc = new Famicom();
-            fc.LoadROM(romInfo);
+            _fc.LoadROM(romInfo);
 
-            Console.CancelKeyPress += ConsoleCancelKeyPress;
-            while (!_exit)
-            {
-                fc.Tick();
-            }
-            LogUtil.Log("Exit Loop!");
+            WindowUtil.Show(256, 240, "FamicomSimulator", Update);
         }
 
-        private static void ConsoleCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+        private static void Update()
         {
-            _exit = true;
+            _fc.Tick();
+
+            WindowUtil.DrawData(_fc.GraphicData);
         }
     }
 }

@@ -60,6 +60,7 @@ namespace FamicomSimulator
         public bool BatterAndOtherNonVolatileMemory; // false 无电池，true 有电池
         public bool HasTrainerArea;
         public bool AlternativeNametables; // false 没有， true 有 （不同含义，4KB RAM 在 PPU $2000-2FFF、4屏等）
+        public bool FourScreen => AlternativeNametables;
 
         public ConsoleType ConsoleType; // 主机类型
         public bool IsNes20; // Nes 2.0 格式
