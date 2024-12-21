@@ -14,6 +14,9 @@ namespace FamicomSimulator.Core
         /// </summary>
         internal byte[] Memory = new byte[1 << 16]; // 内存可寻址区域共 64 KB
 
+        public required Famicom Famicom { get; set; }
+        public Ppu Ppu => Famicom.Ppu;
+
         internal CpuRegister register = new CpuRegister();
 
         /// <summary>
@@ -397,8 +400,7 @@ namespace FamicomSimulator.Core
                 case 0: // [$0000, $2000) 系统主内存，2K内存四次镜像成8K
                     return Memory[address % (1 << 11)];
                 case 1: // [$2000, $4000) PPU 寄存器
-                    return Memory[address];
-                    //throw new NotImplementedException();
+                    return Ppu.ReadByteFromCpu(address);
                 case 2: // [$4000, $6000) pAPU寄存器以及扩展区域
                     return Memory[address];
                     //throw new NotImplementedException();
@@ -422,7 +424,8 @@ namespace FamicomSimulator.Core
                     Memory[address % (1 << 11)] = value;
                     break;
                 case 1: // [$2000, $4000) PPU 寄存器
-                    throw new NotImplementedException();
+                    Ppu.WriteByteFromCpu(address, value);
+                    break;
                 case 2: // [$4000, $6000) pAPU寄存器以及扩展区域
                     throw new NotImplementedException();
                 case 3: // [$6000, $8000) 存档用SRAM区
@@ -543,6 +546,16 @@ namespace FamicomSimulator.Core
             {
                 get => BitUtil.GetBitValue((byte)P, 7);
                 set => P = (StatusRegisterFlag)BitUtil.SetBitValue((byte)P, 7, value);
+            }
+        }
+
+
+        internal void DoVblank()
+        {
+            Ppu.SetVblankFlag();
+            if ((Ppu.CtrlRgister & Ppu.PpuCtrlRegisterFlag.V) != 0)
+            {
+                NMI();
             }
         }
 

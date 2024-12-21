@@ -585,5 +585,17 @@ namespace FamicomSimulator.Core
         {
             throw new NotImplementedException();
         }
+
+        private void NMI()
+        {
+            byte pch = (byte)(register.PC >> 8);
+            byte pcl = (byte)(register.PC & 0xFF);
+
+            Push(pch);
+            Push(pcl);
+            Push((byte)(register.P | StatusRegisterFlag.R));
+            register.I = 1;
+            register.PC = ReadAddress((ushort)InterruptVector.NMI);
+        }
     }
 }
