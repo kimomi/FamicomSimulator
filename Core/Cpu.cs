@@ -12,35 +12,25 @@ namespace FamicomSimulator.Core
         /// <summary>
         /// 可寻址内存
         /// </summary>
-        internal byte[] Memory = new byte[1 << 16]; // 内存可寻址区域共 64 KB
 
         public required Famicom Famicom { get; set; }
         public Ppu Ppu => Famicom.Ppu;
 
         internal CpuRegister register = new CpuRegister();
 
-        /// <summary>
-        /// 单个 Bank 为 8KB，共 8 块
-        /// 0: [$0000, $2000) 系统主内存，2K内存四次镜像成8K
-        /// 1: [$2000, $4000) PPU 寄存器
-        /// 2: [$4000, $6000) pAPU寄存器以及扩展区域
-        /// 3: [$6000, $8000) 存档用SRAM区
-        /// 剩下的全是 程序代码区 PRG-ROM
-        /// </summary>
-        internal readonly int[] Banks = new int[8];
-
         internal void LoadROM(RomInfo romInfo)
         {
-            if (romInfo.DataPrgRom.Length / 1024 / 16 == 1)
-            {
-                Array.Copy(romInfo.DataPrgRom, 0, Memory, 0x8000, romInfo.DataPrgRom.Length);
-                Array.Copy(romInfo.DataPrgRom, 0, Memory, 0xC000, romInfo.DataPrgRom.Length); // 镜像
-            }
-            else
-            {
-                Array.Copy(romInfo.DataPrgRom, 0, Memory, 0x8000, romInfo.DataPrgRom.Length);
-            }
+            int id2 = (int)((romInfo.Header.PrgRomSize) & 2);
+            LoadPrgRom8K(romInfo, 0, 0);
+            LoadPrgRom8K(romInfo, 1, 1);
+            LoadPrgRom8K(romInfo, 2, id2);
+            LoadPrgRom8K(romInfo, 3, id2 + 1);
             AtPower();
+        }
+
+        private void LoadPrgRom8K(RomInfo romInfo, int des, int src)
+        {
+            Array.Copy(romInfo.DataPrgRom, 8 * 1024 * src, Famicom.PrgBanks[4 + des], 0, 8 * 1024);
         }
 
         private void AtPower()
@@ -395,22 +385,25 @@ namespace FamicomSimulator.Core
 
         internal byte ReadByte(ushort address)
         {
-            switch ((address & 0xC000) >> 13)
+            switch (address >> 13)
             {
                 case 0: // [$0000, $2000) 系统主内存，2K内存四次镜像成8K
-                    return Memory[address % (1 << 11)];
+                    return Famicom.MainMemory[address % (1 << 11)];
                 case 1: // [$2000, $4000) PPU 寄存器
                     return Ppu.ReadByteFromCpu(address);
                 case 2: // [$4000, $6000) pAPU寄存器以及扩展区域
-                    return Memory[address];
-                    //throw new NotImplementedException();
+                    if (address >= 0x4020)
+                    {
+                        throw new NotImplementedException();
+                    }
+                    return 0;
                 case 3: // [$6000, $8000) 存档用SRAM区
-                    return Memory[address];
+                    return Famicom.SaveMemory[address & 0x1fff];
                 case 4: // 程序代码区 PRG-ROM
                 case 5: // 程序代码区 PRG-ROM
                 case 6: // 程序代码区 PRG-ROM
                 case 7: // 程序代码区 PRG-ROM
-                    return Memory[address];
+                    return Famicom.PrgBanks[address >> 13][address & 0x1fff];
                 default:
                     return 0;
             }
@@ -418,24 +411,28 @@ namespace FamicomSimulator.Core
 
         internal void WriteByte(ushort address, byte value) 
         {
-            switch ((address & 0xC0) >> 13)
+            switch (address >> 13)
             {
                 case 0: // [$0000, $2000) 系统主内存，2K内存四次镜像成8K
-                    Memory[address % (1 << 11)] = value;
+                    Famicom.MainMemory[address % (1 << 11)] = value;
                     break;
                 case 1: // [$2000, $4000) PPU 寄存器
                     Ppu.WriteByteFromCpu(address, value);
                     break;
                 case 2: // [$4000, $6000) pAPU寄存器以及扩展区域
-                    throw new NotImplementedException();
+                    if (address >= 0x4020)
+                    {
+                        throw new NotImplementedException();
+                    }
+                    break;
                 case 3: // [$6000, $8000) 存档用SRAM区
-                    Memory[address] = value;
+                    Famicom.SaveMemory[address & 0x1fff] = value;
                     break;
                 case 4: // 程序代码区 PRG-ROM
                 case 5: // 程序代码区 PRG-ROM
                 case 6: // 程序代码区 PRG-ROM
                 case 7: // 程序代码区 PRG-ROM
-                    Memory[address] = value;
+                    Famicom.PrgBanks[address >> 13][address & 0x1fff] = value;
                     break;
                 default:
                     break;
@@ -451,14 +448,14 @@ namespace FamicomSimulator.Core
 
         internal void Push(byte v)
         {
-            Memory[0x100 + register.SP] = v;
+            Famicom.MainMemory[0x100 + register.SP] = v;
             register.SP--;
         }
 
         internal byte Pull()
         {
             register.SP++;
-            return Memory[0x100 + register.SP];
+            return Famicom.MainMemory[0x100 + register.SP];
         }
 
         internal enum InterruptVector : ushort

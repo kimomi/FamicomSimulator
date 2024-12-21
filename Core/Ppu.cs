@@ -15,17 +15,13 @@ namespace FamicomSimulator.Core
 
         public Ppu()
         {
-            for (int i = 0; i < Banks.Length; i++)
-            {
-                Banks[i] = new byte[1024];
-            }
         }
 
         /// <summary>
         /// 可寻址内存
         /// </summary>
         //internal byte[] Memory = new byte[1 << 14]; // PPU 内存可寻址区域共 16 KB
-        internal byte[][] Banks = new byte[0x4000 / 0x0400][]; // 内存地址库
+        internal byte[] Banks = new byte[0x4000]; // 内存地址库
 
         public byte[] Spindexes = new byte[0x20]; // 64 bytes of 精灵调色板索引
         public byte[] Sprites = new byte[0x100]; // 256 bytes of 精灵数据
@@ -51,50 +47,44 @@ namespace FamicomSimulator.Core
 
         internal void LoadROM(RomInfo romInfo)
         {
-            foreach (var bank in Banks)
-            {
-                Array.Clear(bank);
-            }
+            Array.Clear(Banks);
             Array.Clear(Spindexes);
             Array.Clear(Sprites);
             Array.Clear(Scroll);
 
             // CHR-ROM
-            for (int i = 0; i < 8; i++)
-            {
-                Array.Copy(romInfo.DataChrRom, i * 1024, Banks[i], 0, 1024);
-            }
+            Array.Copy(romInfo.DataChrRom, 0, Banks, 0, 8 * 1024);
 
             // 4屏
             if (romInfo.Header.FourScreen)
             {
-                Banks[0x8] = Famicom.VideoMemory[0];
-                Banks[0x9] = Famicom.VideoMemory[1];
-                Banks[0xa] = Famicom.VideoMemoryEx[0];
-                Banks[0xb] = Famicom.VideoMemoryEx[1];
+                Array.Copy(Famicom.VideoMemory, 0, Banks, 0x8 * 1024, 1024);
+                Array.Copy(Famicom.VideoMemory, 1024, Banks, 0x9 * 1024, 1024);
+                Array.Copy(Famicom.VideoMemoryEx, 0, Banks, 0xA * 1024, 1024);
+                Array.Copy(Famicom.VideoMemoryEx, 1024, Banks, 0xB * 1024, 1024);
             }
             // 横版
             else if (romInfo.Header.HardwiredNametaleLayoot)
             {
-                Banks[0x8] = Famicom.VideoMemory[0];
-                Banks[0x9] = Famicom.VideoMemory[1];
-                Banks[0xa] = Famicom.VideoMemory[0];
-                Banks[0xb] = Famicom.VideoMemory[1];
+                Array.Copy(Famicom.VideoMemory, 0, Banks, 0x8 * 1024, 1024);
+                Array.Copy(Famicom.VideoMemory, 1024, Banks, 0x9 * 1024, 1024);
+                Array.Copy(Famicom.VideoMemory, 0, Banks, 0xA * 1024, 1024);
+                Array.Copy(Famicom.VideoMemory, 1024, Banks, 0xB * 1024, 1024);
             }
             // 纵版
             else
             {
-                Banks[0x8] = Famicom.VideoMemory[0];
-                Banks[0x9] = Famicom.VideoMemory[0];
-                Banks[0xa] = Famicom.VideoMemory[1];
-                Banks[0xb] = Famicom.VideoMemory[1];
+                Array.Copy(Famicom.VideoMemory, 0, Banks, 0x8 * 1024, 1024);
+                Array.Copy(Famicom.VideoMemory, 0, Banks, 0x9 * 1024, 1024);
+                Array.Copy(Famicom.VideoMemory, 1024, Banks, 0xA * 1024, 1024);
+                Array.Copy(Famicom.VideoMemory, 1024, Banks, 0xB * 1024, 1024);
             }
 
             // 镜像
-            Banks[0xc] = Banks[0x8];
-            Banks[0xd] = Banks[0x9];
-            Banks[0xe] = Banks[0xa];
-            Banks[0xf] = Banks[0xb];
+            Array.Copy(Banks, 0x8 * 1024, Banks, 0xC * 1024, 1024);
+            Array.Copy(Banks, 0x9 * 1024, Banks, 0xD * 1024, 1024);
+            Array.Copy(Banks, 0xA * 1024, Banks, 0xE * 1024, 1024);
+            Array.Copy(Banks, 0xB * 1024, Banks, 0xF * 1024, 1024);
         }
 
         [Flags]
@@ -220,11 +210,11 @@ namespace FamicomSimulator.Core
                 case 6:
                     if ((Writex2 & 1) != 0) // 写入高字节
                     {
-                        VRamAddr = (ushort)((VRamAddr | 0xFF00) | data);
+                        VRamAddr = (ushort)((VRamAddr & 0xFF00) | data);
                     }
                     else // 写入低字节
                     {
-                        VRamAddr = (ushort)((VRamAddr | 0x00FF) | (data << 8));
+                        VRamAddr = (ushort)((VRamAddr & 0x00FF) | (data << 8));
                     }
                     Writex2++;
                     break;
@@ -254,7 +244,7 @@ namespace FamicomSimulator.Core
                 ushort offset = (ushort)(realAddress & 0x3FF);
                 Debug.Assert(index < Banks.Length);
                 byte data = pseudo;
-                pseudo = Banks[index][offset];
+                pseudo = Banks[index * 1024 + offset];
                 return data;
             }
             else // 调色板索引
@@ -273,7 +263,7 @@ namespace FamicomSimulator.Core
                 ushort index = (ushort)(realAddress >> 10);
                 ushort offset = (ushort)(realAddress & 0x3FF);
                 Debug.Assert(index < Banks.Length);
-                Banks[index][offset] = data;
+                Banks[index * 1024 + offset] = data;
             }
             else // 调色板索引
             {

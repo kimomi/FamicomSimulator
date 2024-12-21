@@ -11,8 +11,12 @@ namespace FamicomSimulator.Core
         internal Cpu Cpu;
         internal Ppu Ppu;
         public RomInfo? RomInfo;
-        public byte[][] VideoMemory = new byte[2][];
-        public byte[][] VideoMemoryEx = new byte[2][];
+
+        public byte[][] PrgBanks = new byte[0x10000 >> 13][];
+        public byte[] SaveMemory = new byte[8 * 1024];
+        public byte[] VideoMemory = new byte[2 * 1024];
+        public byte[] VideoMemoryEx = new byte[2 * 1024];
+        public byte[] MainMemory = new byte[2 * 1024];
 
         public Famicom()
         {
@@ -24,11 +28,12 @@ namespace FamicomSimulator.Core
             {
                 Famicom = this
             };
-            for (int i = 0; i < VideoMemory.Length; i++)
+            for (int i = 0; i < PrgBanks.Length; i++)
             {
-                VideoMemory[i] = new byte[1024];
-                VideoMemoryEx[i] = new byte[1024];
+                PrgBanks[i] = new byte[8 * 1024];
             }
+            PrgBanks[0] = MainMemory;
+            PrgBanks[3] = SaveMemory;
         }
 
         public void LoadROM(RomInfo romInfo)
@@ -58,11 +63,18 @@ namespace FamicomSimulator.Core
         private PaletteData[] PaletteData = new PaletteData[16];
         internal uint[] GraphicData = new uint[256 * 240];
 
+        static int num = 0;
+
         public void Tick()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 10000; i++)
             {
                 Cpu.Tick();
+                //LogUtil.Log(Cpu.ToString());
+                //if (num ++ < 100000)
+                //{
+                //    File.AppendAllText("log.txt", i + " - " + Cpu.ToString() + "\n");
+                //}
             }
 
             Cpu.DoVblank();
@@ -77,28 +89,28 @@ namespace FamicomSimulator.Core
             PaletteData[4 * 3] = PaletteData[0];
 
             // 背景
-            var now = Ppu.Banks[8];
-            var bpg = Ppu.Banks[((Ppu.CtrlRgister & Ppu.PpuCtrlRegisterFlag.B) != 0) ? 4 : 0];
+            var now = 8 * 1024;
+            var bpg = ((Ppu.CtrlRgister & Ppu.PpuCtrlRegisterFlag.B) != 0) ? (4 * 1024) : 0;
             for (int i = 0; i < 256 * 240; i++)
             {
                 var x = i % 256;
-                var y = i / 256;
+                var y = 240 - i / 256;
                 GraphicData[i] = GetPixel(x, y, now, bpg).ToUint();
             }
         }
 
-        private PaletteData GetPixel(int x, int y, byte[] nt, byte[] bg)
+        private PaletteData GetPixel(int x, int y, int nt, int bg)
         {
             // 获取所在名称表
             var id = (x >> 3) + (y >> 3) * 32;
-            var name = nt[id];
+            var name = Ppu.Banks[nt + id];
             // 查找对应图样表
             var nowp0 = name * 16;
             var nowp1 = nowp0 + 8;
             // Y坐标为平面内偏移
             int offset = y & 0x7;
-            var p0 = bg[nowp0 + offset];
-            var p1 = bg[nowp1 + offset];
+            var p0 = Ppu.Banks[nowp0 + offset];
+            var p1 = Ppu.Banks[nowp1 + offset];
             // X坐标为字节内偏移
             var shift = (~x) & 0x7;
             var mask = 1 << shift;
@@ -106,7 +118,7 @@ namespace FamicomSimulator.Core
             var low = ((p0 & mask) >> shift) | ((p1 & mask) >> shift << 1);
             // 计算所在属性表
             var aid = (x >> 5) + (y >> 5) * 8;
-            var attr = nt[aid + (32 * 30)];
+            var attr = Ppu.Banks[nt + aid + (32 * 30)];
             // 获取属性表内位偏移
             var aoffset = ((x & 0x10) >> 3) | ((y & 0x10) >> 2);
             // 计算高两位
@@ -124,7 +136,7 @@ namespace FamicomSimulator.Core
             for (int i = 0; i < testFileLines.Length; i++)
             {
                 var cpuState = Cpu.ToString();
-                LogUtil.Log(cpuState);
+                //LogUtil.Log(cpuState);
                 var myAsm = cpuState.Substring(7, 19).Trim();
                 var refAsm = testFileLines[i].Substring(16, 19).Split('@')[0].Trim();
 
@@ -139,7 +151,7 @@ namespace FamicomSimulator.Core
                     LogUtil.Error("Test Failed!");
                     break;
                 }
-                Tick();
+                Cpu.Tick();
             }
             LogUtil.Log("Finish Test!");
         }

@@ -24,6 +24,7 @@ namespace FamicomSimulator
             _fc.LoadROM(romInfo);
 
             WindowUtil.Show(256, 240, "FamicomSimulator", Update);
+            Console.ReadLine();
         }
 
         private static void Update()
