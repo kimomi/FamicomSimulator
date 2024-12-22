@@ -5,6 +5,8 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
 using System.Drawing;
 using static FamicomSimulator.Config.GlobalData;
+using static FamicomSimulator.Core.Ppu;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FamicomSimulator.Core
 {
@@ -72,11 +74,9 @@ namespace FamicomSimulator.Core
         public const int HEIGHT = 256;
         internal uint[] GraphicData = new uint[WIDTH * HEIGHT];
 
-        static int num = 0;
-
         public void Tick()
         {
-            for (int i = 0; i < 1000; i++)
+            for (int i = 0; i < 10000; i++)
             {
                 Cpu.Tick();
             }
@@ -100,9 +100,132 @@ namespace FamicomSimulator.Core
             for (int i = 0; i < WIDTH * HEIGHT; i++)
             {
                 var x = i % WIDTH;
-                var y = HEIGHT - i / WIDTH;
-                GraphicData[i] = GetPixel(x, y, now, bpg).ToUint();
+                var y = i / WIDTH;
+                GraphicData[i] = GetPixel(x, y, now, bpg);
             }
+
+            SubRnder();
+        }
+
+        private void SubRnder()
+        {
+            // 生成调色板颜色
+            for (int i = 0; i < 16; i++)
+            {
+                PaletteData[i] = GlobalData.Palettes[Ppu.Spindexes[i]];
+            }
+            PaletteData[4 * 1] = PaletteData[0];
+            PaletteData[4 * 2] = PaletteData[0];
+            PaletteData[4 * 3] = PaletteData[0];
+
+            // 设置为背景色
+            for (int i = 0; i < WIDTH * HEIGHT; i++)
+            {
+                GraphicData[i] = PaletteData[0];
+            }
+
+            // 精灵
+            var spp = ((Ppu.CtrlRgister & PpuCtrlRegisterFlag.S) != 0) ? (4 * 1024) : 0;
+            for (int i = 63; i >= 0; i--)
+            {
+                var ptr = i * 4;
+                byte yy = Ppu.Sprites[ptr + 0];
+                byte ii = Ppu.Sprites[ptr + 1];
+                byte aa = Ppu.Sprites[ptr + 2];
+                byte xx = Ppu.Sprites[ptr + 3];
+                if (yy >= 0xEF) continue;
+
+                var nowp0 = spp + ii * 16;
+                var nowp1 = nowp0 + 8;
+                byte high = (byte)((aa & 3) << 2);
+                // 水平翻转
+                if ((aa & 0x40) != 0)
+                {
+                    for (var j = 0; j < 8; ++j)
+                    {
+                        ExpandLine8r(Ppu.Banks[nowp0 + j], Ppu.Banks[nowp1 + j], high, xx + (yy + j + 1) * 256);
+                    }
+                }
+                else
+                {
+                    for (var j = 0; j < 8; ++j)
+                    {
+                        ExpandLine8(Ppu.Banks[nowp0 + j], Ppu.Banks[nowp1 + j], high, xx + (yy + j + 1) * 256);
+                    }
+                }
+            }
+        }
+
+        private void ExpandLine8(byte p0, byte p1, byte high, int index)
+        {
+            // 0 - D7
+            byte low0 = (byte)(((p0 & 0x80) >> 7) | ((p1 & (byte)0x80) >> 6));
+            PaletteData[high] = GraphicData[index + 0];
+            GraphicData[index + 0] = PaletteData[high | low0];
+            // 1 - D6
+            byte low1 = (byte)(((p0 & 0x40) >> 6) | ((p1 & (byte)0x40) >> 5));
+            PaletteData[high] = GraphicData[index + 1];
+            GraphicData[index + 1] = PaletteData[high | low1];
+            // 2 - D5
+            byte low2 = (byte)(((p0 & (byte)0x20) >> 5) | ((p1 & (byte)0x20) >> 4));
+            PaletteData[high] = GraphicData[index + 2];
+            GraphicData[index + 2] = PaletteData[high | low2];
+            // 3 - D4
+            byte low3 = (byte)(((p0 & (byte)0x10) >> 4) | ((p1 & (byte)0x10) >> 3));
+            PaletteData[high] = GraphicData[index + 3];
+            GraphicData[index + 3] = PaletteData[high | low3];
+            // 4 - D3
+            byte low4 = (byte)(((p0 & (byte)0x08) >> 3) | ((p1 & (byte)0x08) >> 2));
+            PaletteData[high] = GraphicData[index + 4];
+            GraphicData[index + 4] = PaletteData[high | low4];
+            // 5 - D2
+            byte low5 = (byte)(((p0 & (byte)0x04) >> 2) | ((p1 & (byte)0x04) >> 1));
+            PaletteData[high] = GraphicData[index + 5];
+            GraphicData[index + 5] = PaletteData[high | low5];
+            // 6 - D1
+            byte low6 = (byte)(((p0 & (byte)0x02) >> 1) | ((p1 & (byte)0x02) >> 0));
+            PaletteData[high] = GraphicData[index + 6];
+            GraphicData[index + 6] = PaletteData[high | low6];
+            // 7 - D0
+            byte low7 = (byte)(((p0 & (byte)0x01) >> 0) | ((p1 & (byte)0x01) << 1));
+            PaletteData[high] = GraphicData[index + 7];
+            GraphicData[index + 7] = PaletteData[high | low7];
+        }
+
+        private void ExpandLine8r(byte p0, byte p1, byte high, int index)
+        {
+            // 7 - D7
+            byte low0 = (byte)(((p0 & 0x80) >> 7) | ((p1 & (byte)0x80) >> 6));
+            PaletteData[high] = GraphicData[index + 7];
+            GraphicData[index + 7] = PaletteData[high | low0];
+            // 6 - D6
+            byte low1 = (byte)(((p0 & 0x40) >> 6) | ((p1 & (byte)0x40) >> 5));
+            PaletteData[high] = GraphicData[index + 6];
+            GraphicData[index + 6] = PaletteData[high | low1];
+            // 5 - D5
+            byte low2 = (byte)(((p0 & (byte)0x20) >> 5) | ((p1 & (byte)0x20) >> 4));
+            PaletteData[high] = GraphicData[index + 5];
+            GraphicData[index + 5] = PaletteData[high | low2];
+            // 4 - D4
+            byte low3 = (byte)(((p0 & (byte)0x10) >> 4) | ((p1 & (byte)0x10) >> 3));
+            PaletteData[high] = GraphicData[index + 4];
+            GraphicData[index + 4] = PaletteData[high | low3];
+            // 3 - D3
+            byte low4 = (byte)(((p0 & (byte)0x08) >> 3) | ((p1 & (byte)0x08) >> 2));
+            PaletteData[high] = GraphicData[index + 3];
+            GraphicData[index + 3] = PaletteData[high | low4];
+            // 2 - D2
+            byte low5 = (byte)(((p0 & (byte)0x04) >> 2) | ((p1 & (byte)0x04) >> 1));
+            PaletteData[high] = GraphicData[index + 2];
+            GraphicData[index + 2] = PaletteData[high | low5];
+            // 1 - D1
+            byte low6 = (byte)(((p0 & (byte)0x02) >> 1) | ((p1 & (byte)0x02) >> 0));
+            PaletteData[high] = GraphicData[index + 1];
+            GraphicData[index + 1] = PaletteData[high | low6];
+            // 0 - D0
+            byte low7 = (byte)(((p0 & (byte)0x01) >> 0) | ((p1 & (byte)0x01) << 1));
+            PaletteData[high] = GraphicData[index + 0];
+            GraphicData[index + 0] = PaletteData[high | low7];
         }
 
         private readonly List<Keys> CtrlKeyList = new List<Keys>()

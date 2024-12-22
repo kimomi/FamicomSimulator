@@ -21,7 +21,7 @@ namespace FamicomSimulator.Core
 
         internal void LoadROM(RomInfo romInfo)
         {
-            int id2 = (int)((romInfo.Header.PrgRomSize) & 2);
+            int id2 = (int)((romInfo.Header.PrgRomSize / 1024 / 16) & 2);
             LoadPrgRom8K(romInfo, 0, 0);
             LoadPrgRom8K(romInfo, 1, 1);
             LoadPrgRom8K(romInfo, 2, id2);
@@ -440,13 +440,12 @@ namespace FamicomSimulator.Core
                     {
                         switch (address & 0x1F)
                         {
+                            case 0x14:
+                                // 0x4014 DMA 访问精灵 RAM
+                                Ppu.DMA(value);
+                                break;
                             case 0x16:
-                                Famicom.ButtonIndexMask = (ushort)(((value & 1) != 0) ? 0 : 7);
-                                if ((value & 1) != 0)
-                                {
-                                    Famicom.ButtonIndex1 = 0;
-                                    Famicom.ButtonIndex2 = 0;
-                                }
+                                WriteCtrlByte(value);
                                 break;
                         }
                     }
@@ -466,6 +465,16 @@ namespace FamicomSimulator.Core
                     break;
                 default:
                     break;
+            }
+        }
+
+        private void WriteCtrlByte(byte value)
+        {
+            Famicom.ButtonIndexMask = (ushort)(((value & 1) != 0) ? 0 : 7);
+            if ((value & 1) != 0)
+            {
+                Famicom.ButtonIndex1 = 0;
+                Famicom.ButtonIndex2 = 0;
             }
         }
 

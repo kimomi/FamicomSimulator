@@ -12,7 +12,7 @@ namespace FamicomSimulator
         public static void Main()
         {
             // load rom file
-            (var ErrorCode, var romInfo) = FileUtil.LoadRom("../../../Others/nestest.nes");
+            (var ErrorCode, var romInfo) = FileUtil.LoadRom("../../../Others/colortest.nes");
             LogUtil.Log($"ErrorCode: {ErrorCode}");
             if (romInfo == null)
             {

@@ -284,5 +284,33 @@ namespace FamicomSimulator.Core
         {
             StatusRgister |= PpuStatusRgisterFlag.V;
         }
+
+        internal void DMA(byte value)
+        {
+            var offset = (value & 0x07) << 8;
+            switch (value >> 5)
+            {
+                default:
+                case 1:
+                    Debug.Fail("PPU Register");
+                    break;
+                case 2:
+                    Debug.Fail("扩展区");
+                    break;
+                case 0:
+                    Array.Copy(Famicom.MainMemory, offset, Sprites, 0, 256);
+                    break;
+                case 3:
+                    Array.Copy(Famicom.SaveMemory, offset, Sprites, 0, 256);
+                    break;
+                case 4:
+                case 5:
+                case 6:
+                case 7:
+                    // 高一位为1, [$8000, $10000) 程序PRG-ROM区
+                    Array.Copy(Famicom.PrgBanks[value >> 5], offset, Sprites, 0, 256);
+                    break;
+            }
+        }
     }
 }

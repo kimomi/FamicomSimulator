@@ -16,10 +16,10 @@ namespace FamicomSimulator.Util
         // 顶点数据：矩形四个角坐标和纹理坐标
         static readonly float[] _vertices =
         {
-            1f,  1f, 0.0f, 1.0f, 1.0f,  // top right
-            1f, -1f, 0.0f, 1.0f, 0.0f,  // bottom right
-            -1f, -1f, 0.0f, 0.0f, 0.0f, // bottom left
-            -1f,  1f, 0.0f, 0.0f, 1.0f  // top left
+            1f,  1f, 0.0f, 1.0f, 0.0f,  // top right
+            1f, -1f, 0.0f, 1.0f, 1.0f,  // bottom right
+            -1f, -1f, 0.0f, 0.0f, 1.0f, // bottom left
+            -1f,  1f, 0.0f, 0.0f, 0.0f  // top left
         };
 
         public static GameWindow? GameWindow { get; private set; }

@@ -1,4 +1,6 @@
-﻿namespace FamicomSimulator.Config
+﻿
+
+namespace FamicomSimulator.Config
 {
     internal static class GlobalData
     {
@@ -17,9 +19,14 @@
                 A = a;
             }
 
-            public uint ToUint()
+            public static implicit operator PaletteData(uint v)
             {
-                return ((uint)A << 24) | ((uint)(B << 16)) | ((uint)(G << 8)) | ((uint)R);
+                return new PaletteData((byte)(v & 0xFF), (byte)((v >> 8) & 0xFF), (byte)((v >> 16) & 0xFF), (byte)((v >> 24) & 0xFF));
+            }
+
+            public static implicit operator uint(PaletteData v)
+            {
+                return ((uint)v.A << 24) | ((uint)(v.B << 16)) | ((uint)(v.G << 8)) | ((uint)v.R);
             }
         }
 
