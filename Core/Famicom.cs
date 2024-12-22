@@ -1,5 +1,7 @@
 ﻿using FamicomSimulator.Config;
 using FamicomSimulator.Util;
+using OpenTK.Platform;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
 using System.Drawing;
 using static FamicomSimulator.Config.GlobalData;
@@ -17,6 +19,11 @@ namespace FamicomSimulator.Core
         public byte[] VideoMemory = new byte[2 * 1024];
         public byte[] VideoMemoryEx = new byte[2 * 1024];
         public byte[] MainMemory = new byte[2 * 1024];
+
+        internal ushort ButtonIndex1;
+        internal ushort ButtonIndex2;
+        internal ushort ButtonIndexMask;
+        internal byte[] ButtonStates = new byte[16];
 
         public Famicom()
         {
@@ -61,23 +68,22 @@ namespace FamicomSimulator.Core
         }
 
         private PaletteData[] PaletteData = new PaletteData[16];
-        internal uint[] GraphicData = new uint[256 * 240];
+        public const int WIDTH = 256;
+        public const int HEIGHT = 256;
+        internal uint[] GraphicData = new uint[WIDTH * HEIGHT];
 
         static int num = 0;
 
         public void Tick()
         {
-            for (int i = 0; i < 10000; i++)
+            for (int i = 0; i < 1000; i++)
             {
                 Cpu.Tick();
-                //LogUtil.Log(Cpu.ToString());
-                //if (num ++ < 100000)
-                //{
-                //    File.AppendAllText("log.txt", i + " - " + Cpu.ToString() + "\n");
-                //}
             }
 
             Cpu.DoVblank();
+
+            KeyInput();
 
             // 生成调色板颜色
             for (int i = 0; i < 16; i++)
@@ -91,11 +97,30 @@ namespace FamicomSimulator.Core
             // 背景
             var now = 8 * 1024;
             var bpg = ((Ppu.CtrlRgister & Ppu.PpuCtrlRegisterFlag.B) != 0) ? (4 * 1024) : 0;
-            for (int i = 0; i < 256 * 240; i++)
+            for (int i = 0; i < WIDTH * HEIGHT; i++)
             {
-                var x = i % 256;
-                var y = 240 - i / 256;
+                var x = i % WIDTH;
+                var y = HEIGHT - i / WIDTH;
                 GraphicData[i] = GetPixel(x, y, now, bpg).ToUint();
+            }
+        }
+
+        private readonly List<Keys> CtrlKeyList = new List<Keys>()
+        {
+            Keys.J, Keys.K, Keys.U, Keys.I, Keys.W, Keys.S, Keys.A, Keys.D,
+            Keys.KeyPad2, Keys.KeyPad3, Keys.KeyPad5, Keys.KeyPad6, Keys.Up, Keys.Down, Keys.Left, Keys.Right,
+        };
+
+        private void KeyInput()
+        {
+            if (WindowUtil.GameWindow == null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < CtrlKeyList.Count; i++)
+            {
+                ButtonStates[i] = (byte)(WindowUtil.GameWindow.IsKeyPressed(CtrlKeyList[i]) ? 1 : 0);
             }
         }
 

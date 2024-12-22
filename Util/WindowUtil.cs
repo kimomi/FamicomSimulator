@@ -3,14 +3,13 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using System;
+using System.Drawing;
 
 namespace FamicomSimulator.Util
 {
     internal static class WindowUtil
     {
-        private static GameWindow? _window;
         private static int _vao, _vbo, _shaderProgram, _texture;
-        private static Random _random = new Random();
         private static int _width = 800, _height = 600;
         private static Action? _updateData;
 
@@ -22,6 +21,8 @@ namespace FamicomSimulator.Util
             -1f, -1f, 0.0f, 0.0f, 0.0f, // bottom left
             -1f,  1f, 0.0f, 0.0f, 1.0f  // top left
         };
+
+        public static GameWindow? GameWindow { get; private set; }
 
         public static void Show(int w, int h, string title, Action update)
         {
@@ -37,17 +38,17 @@ namespace FamicomSimulator.Util
                 MaximumClientSize = new Vector2i(_width, _height),  // 禁用窗口大小调整
             };
 
-            using (_window = new GameWindow(GameWindowSettings.Default, settings))
+            using (GameWindow = new GameWindow(GameWindowSettings.Default, settings))
             {
-                _window.Load += OnLoad;
-                _window.RenderFrame += OnRenderFrame;
-                _window.Run();
+                GameWindow.Load += OnLoad;
+                GameWindow.RenderFrame += OnRenderFrame;
+                GameWindow.Run();
             }
         }
 
         public static void Close()
         {
-            _window?.Close();
+            GameWindow?.Close();
         }
 
         private static void OnLoad()
@@ -72,13 +73,14 @@ namespace FamicomSimulator.Util
             // 创建纹理
             _texture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2d, _texture);
-            GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameteri(TextureTarget.Texture2d, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
         }
 
-        public static void DrawData(uint[] data)
+        public static void DrawData(int w, int h, uint[] data)
         {
-            UpdateTexture(data);
+            GL.BindTexture(TextureTarget.Texture2d, _texture);
+            GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, w, h, 0, PixelFormat.Rgba, PixelType.UnsignedByte, data);
         }
 
         private static void OnRenderFrame(FrameEventArgs args)
@@ -95,7 +97,7 @@ namespace FamicomSimulator.Util
             GL.DrawArrays(PrimitiveType.TriangleFan, 0, 4); // 使用 TriangleFan 绘制矩形
 
             // 交换缓冲区
-            _window?.SwapBuffers();
+            GameWindow?.SwapBuffers();
         }
 
         private static int CreateShaderProgram()
@@ -159,26 +161,6 @@ namespace FamicomSimulator.Util
             }
 
             return shader;
-        }
-
-        private static uint[] GenerateRandomColors(int width, int height)
-        {
-            uint[] colors = new uint[width * height];
-            for (int i = 0; i < colors.Length; i++)
-            {
-                byte r = (byte)_random.Next(0, 256);
-                byte g = (byte)_random.Next(0, 256);
-                byte b = (byte)_random.Next(0, 256);
-                byte a = (byte)_random.Next(0, 256);
-                colors[i] = (uint)(r << 24 | g << 16 | b << 8 | a); // RGBA 格式
-            }
-            return colors;
-        }
-
-        private static void UpdateTexture(uint[] colors)
-        {
-            GL.BindTexture(TextureTarget.Texture2d, _texture);
-            GL.TexImage2D(TextureTarget.Texture2d, 0, InternalFormat.Rgba, _width, _height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, colors);
         }
     }
 }

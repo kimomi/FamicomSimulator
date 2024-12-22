@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace FamicomSimulator.Core
 {
@@ -392,11 +393,26 @@ namespace FamicomSimulator.Core
                 case 1: // [$2000, $4000) PPU 寄存器
                     return Ppu.ReadByteFromCpu(address);
                 case 2: // [$4000, $6000) pAPU寄存器以及扩展区域
-                    if (address >= 0x4020)
+                    if (address < 0x4020)
+                    {
+                        byte data = 0;
+                        switch (address & 0x1F)
+                        {
+                            case 0x16:
+                                data = Famicom.ButtonStates[Famicom.ButtonIndex1 & Famicom.ButtonIndexMask];
+                                Famicom.ButtonIndex1++;
+                                break;
+                            case 0x17:
+                                data = Famicom.ButtonStates[8 + Famicom.ButtonIndex2 & Famicom.ButtonIndexMask];
+                                Famicom.ButtonIndex2++;
+                                break;
+                        }
+                        return data;
+                    }
+                    else
                     {
                         throw new NotImplementedException();
                     }
-                    return 0;
                 case 3: // [$6000, $8000) 存档用SRAM区
                     return Famicom.SaveMemory[address & 0x1fff];
                 case 4: // 程序代码区 PRG-ROM
@@ -420,7 +436,21 @@ namespace FamicomSimulator.Core
                     Ppu.WriteByteFromCpu(address, value);
                     break;
                 case 2: // [$4000, $6000) pAPU寄存器以及扩展区域
-                    if (address >= 0x4020)
+                    if (address < 0x4020)
+                    {
+                        switch (address & 0x1F)
+                        {
+                            case 0x16:
+                                Famicom.ButtonIndexMask = (ushort)(((value & 1) != 0) ? 0 : 7);
+                                if ((value & 1) != 0)
+                                {
+                                    Famicom.ButtonIndex1 = 0;
+                                    Famicom.ButtonIndex2 = 0;
+                                }
+                                break;
+                        }
+                    }
+                    else
                     {
                         throw new NotImplementedException();
                     }

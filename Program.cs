@@ -1,6 +1,7 @@
 ﻿using FamicomSimulator.Config;
 using FamicomSimulator.Core;
 using FamicomSimulator.Util;
+using OpenTK.Platform;
 
 namespace FamicomSimulator
 {
@@ -23,15 +24,14 @@ namespace FamicomSimulator
             // load rom to cpu
             _fc.LoadROM(romInfo);
 
-            WindowUtil.Show(256, 240, "FamicomSimulator", Update);
-            Console.ReadLine();
+            WindowUtil.Show(Famicom.WIDTH * 2, Famicom.HEIGHT * 2, "FamicomSimulator", Update);
         }
 
         private static void Update()
         {
             _fc.Tick();
 
-            WindowUtil.DrawData(_fc.GraphicData);
+            WindowUtil.DrawData(Famicom.WIDTH, Famicom.HEIGHT, _fc.GraphicData);
         }
     }
 }

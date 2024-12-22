@@ -9,12 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Lancher\**" />
-    <EmbeddedResource Remove="Lancher\**" />
-    <None Remove="Lancher\**" />
-  </ItemGroup>
-
-  <ItemGroup>
       <PackageReference Include="OpenTK" Version="5.0.0-pre.13" />
       <PackageReference Include="OpenTK.Core" Version="5.0.0-pre.13" />
       <PackageReference Include="OpenTK.Windowing.Common" Version="5.0.0-pre.13" />
